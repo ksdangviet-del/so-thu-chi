@@ -2432,6 +2432,10 @@ function scanGmail90Days_() {
       return todayISO();
     }
 
+    function hasExplicitVietnameseDate(text) {
+      return /(?:hôm\s*(?:nay|qua|kia)|sáng\s*nay|trưa\s*nay|chiều\s*nay|tối\s*nay|\d+\s*(?:hôm|ngày|tuần|tháng)\s*trước|tuần\s*trước|tháng\s*trước|năm\s*ngoái|đầu\s*tháng|ngày\s*\d{1,2})/iu.test(String(text || ''));
+    }
+
     function parseVietnameseAmount(rawText) {
       let s = normalizeVietnameseNumberWords(rawText);
       // Bảo vệ các số đi kèm cấp độ / số lượng / thời gian để không ghép nhầm vào tiền
@@ -2442,7 +2446,7 @@ function scanGmail90Days_() {
       if (/nửa\s*(?:triệu|củ|chai)/i.test(s)) return 500000;
 
       // 1. Triệu / củ / chai (VD: 1 triệu rưỡi, 1 củ 2, 1.5 triệu, 20 triệu)
-      const mTrieu = s.match(/(\d+(?:\.\d+)?)\s*(?:triệu|củ|chai)(?:\s*(rưỡi|\d{1,3}\s*(?:trăm|nghìn|ngàn|k)?))?/i);
+      const mTrieu = s.match(/(\d+(?:\.\d+)?)\s*(?:triệu|củ|chai|tr\b)(?:\s*(rưỡi|\d{1,3}\s*(?:trăm|nghìn|ngàn|k)?))?/i);
       if (mTrieu) {
         const base = parseFloat(mTrieu[1]) * 1000000;
         let extra = 0;
@@ -2497,8 +2501,8 @@ function scanGmail90Days_() {
         return Number(mPlain[1]) || 0;
       }
 
-      // 7. Số ngắn gọn 10..999 đứng sau động từ thu/chi (VD: "nhặt được 100", "được cho 200", "mất 50") -> nhân 1.000đ
-      const mImplicitThousand = s.match(/(?:nhặt\s*được|lượm\s*được|trúng(?:\s+[\p{L}]+){0,3}\s*được|được\s*(?:cho|tặng|biếu|thưởng|trả)|mất|rơi|tốn|hết|chi|thu)\s*(?:khoảng|tầm|hơn|gần|có)?\s*\b([1-9]\d{1,2})\b(?:\s*(?:đồng|vnđ|vnd|đ))?(?!\s*(?:triệu|củ|chai|trăm|nghìn|ngàn|k|cành|lít|chục|%))/iu);
+      // 7. Số ngắn gọn 10..999 đứng sau động từ thu/chi/vay (VD: "nhặt được 100", "được cho 200", "mất 50", "trả nợ 300") -> nhân 1.000đ
+      const mImplicitThousand = s.match(/(?:nhặt\s*được|lượm\s*được|tìm\s*thấy|trúng(?:\s+[\p{L}]+){0,3}\s*được|được\s*(?:cho|tặng|biếu|thưởng|trả(?:\s*nợ)?|hoàn)|bán(?:\s+[\p{L}]+){0,3}\s*được|mất|rơi|bị\s*phạt|nộp\s*phạt|tốn|hết|chi|thu|vay|mượn|trả\s*nợ)\s*(?:khoảng|tầm|hơn|gần|có)?\s*\b([1-9]\d{1,2})\b(?:\s*(?:đồng|vnđ|vnd|đ))?(?!\s*(?:triệu|củ|chai|tr\b|trăm|nghìn|ngàn|k|cành|lít|chục|%))/iu);
       if (mImplicitThousand) {
         return Number(mImplicitThousand[1]) * 1000;
       }
@@ -2509,15 +2513,16 @@ function scanGmail90Days_() {
     function splitMultiVoiceClauses(transcript) {
       const raw = String(transcript || '').trim();
       if (!raw) return [];
-      const moneyUnitLookbehind = '(?:triệu|củ|chai|trăm|nghìn|ngàn|k|cành|lít|chục|đồng|vnđ|vnd|đ)';
+      const moneyUnitLookbehind = '(?:triệu|củ|chai|tr|trăm|nghìn|ngàn|k|cành|lít|chục|đồng|vnđ|vnd|đ|\\d{2,})';
+      const actionVerbLookahead = '(?:mua|ăn|uống|đổ|đóng|trả|chi|tiêu|thu|nhận|lĩnh|vay|mượn|cho\\s+vay|cho\\s+[\\p{L}]+\\s+vay|cho\\s+[\\p{L}]+\\s+mượn|gửi|nạp|thanh\\s+toán|đưa|chuyển|bán|trúng|nhặt|lượm|mất|bị\\s+mất|bị\\s+phạt|nộp\\s+phạt|tôi|mình|em|anh|quỳnh|vợ)';
       const primaryParts = raw
-        .split(new RegExp(`\\s*(?:,|;|\\n|(?<=${moneyUnitLookbehind})\\s+và\\s+|\\bvà\\s+(?=(?:mua|ăn|uống|đổ|đóng|trả|chi|tiêu|thu|nhận|lĩnh|vay|mượn|cho\\s+vay|cho\\s+[\\p{L}]+\\s+vay|gửi|nạp|thanh\\s+toán)\\b))\\s*`, 'iu'))
+        .split(new RegExp(`\\s*(?:,|;|\\n|\\.(?=\\s+[\\p{L}])|(?<=${moneyUnitLookbehind})\\s+(?:và|rồi|sau\\s+đó|xong|còn|tiếp\\s+theo|với\\s+lại|nhưng|để)\\s+|\\b(?:và|rồi|sau\\s+đó|còn)\\s+(?=${actionVerbLookahead}\\b))\\s*`, 'iu'))
         .map(s => s.trim())
         .filter(Boolean);
 
       const finalClauses = [];
       primaryParts.forEach(part => {
-        const moneyTokenRx = /(?:\b(?:nửa\s+(?:triệu|củ|chai)|(?:\d+(?:[.,]\d+)?|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười)\s*(?:triệu|củ|chai|trăm|nghìn|ngàn|k|cành|lít|chục)|[1-9][0-9]{0,2}(?:\.[0-9]{3})+|[1-9][0-9]{3,9}\s*(?:đồng|vnđ|vnd|đ))(?:\s*(?:rưỡi|\d{1,3}\s*(?:nghìn|ngàn|k)?))?)/giu;
+        const moneyTokenRx = /(?:\b(?:nửa\s+(?:triệu|củ|chai)|(?:\d+(?:[.,]\d+)?|một|hai|ba|bốn|tư|năm|sáu|bảy|tám|chín|mười|hai\s+mươi|ba\s+mươi|bốn\s+mươi|năm\s+mươi)\s*(?:triệu|củ|chai|tr\b|trăm|nghìn|ngàn|k|cành|lít|chục)|[1-9][0-9]{0,2}(?:\.[0-9]{3})+|[1-9][0-9]{3,9}\s*(?:đồng|vnđ|vnd|đ))(?:\s*(?:rưỡi|\d{1,3}\s*(?:nghìn|ngàn|k)?))?)/giu;
         const matches = Array.from(part.matchAll(moneyTokenRx));
         if (matches.length <= 1) {
           finalClauses.push(part);
@@ -2547,18 +2552,19 @@ function scanGmail90Days_() {
         .replace(/\bngày\s*\d{1,2}(?:\s*[\/\-]\s*\d{1,2})?\b/giu, ' ');
 
       // Dọn cụm số tiền (giữ nguyên số đi kèm cấp độ / số lượng như "cấp độ 3", "1 lít sữa", "2 bát")
-      const numWord = '(?:\\d+(?:[.,]\\d+)?|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|tám|chín|mười|nửa)';
+      const numWord = '(?:\\d+(?:[.,]\\d+)?|(?:hai|ba|bốn|tư|năm|sáu|bảy|tám|chín)\\s+mươi(?:\\s+(?:mốt|một|hai|ba|bốn|tư|lăm|năm|sáu|bảy|tám|chín))?|mười(?:\\s+(?:một|hai|ba|bốn|tư|lăm|năm|sáu|bảy|tám|chín))?|một|mốt|hai|ba|bốn|tư|năm|lăm|sáu|bảy|tám|chín|nửa)';
       s = s
-        .replace(new RegExp(`(?:hết|mất|giá|tổng|tốn)?\\s*\\b${numWord}\\s*(?:triệu|củ|chai|trăm|nghìn|ngàn|k|cành|chục)(?:\\s*(?:rưỡi|${numWord}\\s*(?:trăm|nghìn|ngàn|k)?))?\\s*(?:đồng|vnđ|vnd|đ)?`, 'giu'), ' ')
+        .replace(new RegExp(`(?:hết|mất|giá|tổng|tốn|được)?\\s*\\b${numWord}\\s*(?:triệu|củ|chai|tr\\b|trăm|nghìn|ngàn|k|cành|chục)(?:\\s*(?:rưỡi|${numWord}\\s*(?:trăm|nghìn|ngàn|k)?))?\\s*(?:đồng|vnđ|vnd|đ)?`, 'giu'), ' ')
         .replace(new RegExp(`(?:hết|mất|giá|tổng|tốn)?\\s*\\b${numWord}\\s*lít\\b(?!\\s+(?:sữa|xăng|dầu|nước|mắm|rượu|bia))`, 'giu'), ' ')
         .replace(/(?:hết|mất|giá|tổng|tốn)?\s*\b[1-9]\d{0,2}(?:[.,]\d{3})+\s*(?:đồng|vnđ|vnd|đ)?/giu, ' ')
         .replace(/(?:hết|mất|giá|tổng|tốn)?\s*\b[1-9]\d{3,9}\s*(?:đồng|vnđ|vnd|đ)?/giu, ' ')
-        .replace(/((?:nhặt\s*được|lượm\s*được|trúng(?:\s+[\p{L}]+){0,3}\s*được|được\s*(?:cho|tặng|biếu|thưởng|trả)|mất|rơi))\s+(?:khoảng|tầm|hơn|gần|có)?\s*\b[1-9]\d{1,2}\b(?:\s*(?:đồng|vnđ|vnd|đ))?(?!\s*(?:triệu|củ|chai|trăm|nghìn|ngàn|k|cành|lít|chục|%))/giu, '$1');
+        .replace(/((?:nhặt\s*được|lượm\s*được|tìm\s*thấy|trúng(?:\s+[\p{L}]+){0,3}\s*được|được\s*(?:cho|tặng|biếu|thưởng|trả(?:\s*nợ)?)|mất|rơi|bị\s*phạt|nộp\s*phạt))\s+(?:khoảng|tầm|hơn|gần|có)?\s*\b[1-9]\d{1,2}\b(?:\s*(?:đồng|vnđ|vnd|đ))?(?!\s*(?:triệu|củ|chai|tr\b|trăm|nghìn|ngàn|k|cành|lít|chục|%))/giu, '$1');
 
       s = s
         .replace(/\s+/g, ' ')
-        .replace(/\s+(?:hết|mất|giá|tổng|là|với giá|tốn|tiền|trong đó có|có)$/iu, '')
-        .replace(/^(?:tôi|mình|em|anh)\s+(?=(?:ăn|uống|mua|đổ|đóng|trả|đi|chi|tiêu|trúng|nhặt|lượm|bị|làm|đánh|mất)\b)/iu, '')
+        .replace(/\s+(?:hết|mất|giá|tổng|là|với giá|tốn|trong đó có|có|được)$/iu, '')
+        .replace(/^(?:tôi|mình|em|anh)\s+(?=(?:ăn|uống|mua|đổ|đóng|trả|đi|chi|tiêu|trúng|nhặt|lượm|tìm|bị|làm|đánh|mất|bán|thu|nhận|lĩnh|nộp|quyên|ủng|vay|mượn|cho)\b)/iu, '')
+        .replace(/^(?:trên\s+đường\s+(?:đi\s+về|về|đi\s+làm|đi\s+chơi)\s+)?(?:tôi|mình|em|anh)\s+/iu, '')
         .replace(/^(?:chi|tiêu|hết)\s+(?=(?:mua|ăn|uống|đổ|đóng|trả|tiền|đi)\b)/iu, '')
         .replace(/^[,.\-:\s]+|[,.\-:\s]+$/g, '')
         .trim();
@@ -2567,12 +2573,23 @@ function scanGmail90Days_() {
     }
 
     function formatVietnamesePersonName(rawName) {
-      return String(rawName || '')
-        .trim()
-        .replace(/\s+/g, ' ')
-        .split(' ')
-        .map(w => w ? w[0].toLocaleUpperCase('vi-VN') + w.slice(1) : '')
-        .join(' ');
+      const stopWords = new Set([
+        'một', 'mốt', 'hai', 'ba', 'bốn', 'tư', 'năm', 'lăm', 'sáu', 'bảy', 'tám', 'chín', 'mười',
+        'mươi', 'trăm', 'nghìn', 'ngàn', 'triệu', 'củ', 'chai', 'tr', 'k', 'cành', 'lít', 'chục', 'đồng',
+        'tiền', 'nợ', 'vay', 'mượn', 'hết', 'mất', 'được', 'cho', 'tôi', 'mình', 'hôm', 'ngày', 'tháng', 'năm', 'tuần', 'để', 'vào', 'lúc', 'khoảng', 'tầm'
+      ]);
+      const words = String(rawName || '').trim().replace(/\s+/g, ' ').split(' ');
+      const kept = [];
+      for (let i = 0; i < words.length; i++) {
+        const w = words[i];
+        const wl = w.toLowerCase();
+        if (!w || /^\d/.test(w)) break;
+        if (kept.length > 0 && stopWords.has(wl)) break;
+        if (kept.length === 0 && stopWords.has(wl)) return '';
+        kept.push(w[0].toLocaleUpperCase('vi-VN') + w.slice(1));
+        if (kept.length >= 3) break;
+      }
+      return kept.join(' ');
     }
 
     function extractDebtInfo(rawClause) {
@@ -2588,23 +2605,30 @@ function scanGmail90Days_() {
       let debtDir = '';
       const nameToken = '(?:(?:anh|chị|cô|chú|bác|em|bạn|ông|bà)\\s+)?[\\p{L}]{2,}(?:\\s+[\\p{L}]{2,}){0,2}';
       const selfWords = /^(?:tôi|mình|em|anh|việt|nhà|tiền|nợ|vay|mượn|cũ|mới|đầu|kỳ|hôm|tháng|tuần|năm|hết|mất)$/iu;
-      const isOldPeriod = /(?:tháng\s*trước|năm\s*ngoái|nợ\s*cũ|đầu\s*kỳ)/iu.test(lower);
+      const isOldPeriod = /(?:tháng\s*trước|\d+\s*tháng\s*trước|năm\s*ngoái|nợ\s*cũ|khoản\s*vay\s*cũ|đầu\s*kỳ)/iu.test(lower);
 
-      // 1. Bị động: "Tôi được [Tên] trả nợ..." -> Thu hồi nợ
+      const pickPerson = (rawMatch) => {
+        const cleaned = formatVietnamesePersonName(rawMatch);
+        return cleaned && !selfWords.test(cleaned) ? cleaned : '';
+      };
+
+      // 1. Bị động: "Tôi được [Tên] trả nợ..." hoặc "Tôi được trả nợ (từ/của [Tên])..." -> Thu hồi nợ (TIỀN VÀO / THU)
       let m = text.match(new RegExp(`(?:được|nhận)\\s+(${nameToken})\\s+(?:trả\\s+nợ|trả\\s+tiền\\s+(?:nợ|vay|mượn))`, 'iu'));
       if (m) {
         subCat = 'Thu hồi nợ';
-        if (!selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        person = pickPerson(m[1]);
       } else if (/(?:được|nhận)\s+(?:trả\s+nợ|trả\s+tiền\s+(?:nợ|vay|mượn))/iu.test(lower)) {
         subCat = 'Thu hồi nợ';
+        const mAfter = text.match(new RegExp(`(?:được|nhận)\\s+(?:trả\\s+nợ|trả\\s+tiền\\s+(?:nợ|vay|mượn))\\s+(?:(?:từ|của|bởi)\\s+)?(${nameToken})`, 'iu'));
+        if (mAfter) person = pickPerson(mAfter[1]);
       }
 
-      // 2. Chủ động: "[Tên] trả nợ (cho tôi)..." -> Thu hồi nợ
+      // 2. Chủ động: "[Tên] trả nợ (cho tôi)..." -> Thu hồi nợ (TIỀN VÀO / THU)
       if (!subCat) {
-        m = text.match(new RegExp(`^(${nameToken})\\s+(?:trả\\s+nợ|trả\\s+tiền\\s+(?:nợ|vay|mượn))`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
+        m = text.match(new RegExp(`^(?:(?:hôm\\s+\\S+|ngày\\s+\\S+|tháng\\s+trước)\\s+)?(${nameToken})\\s+(?:trả\\s+nợ|trả\\s+tiền\\s+(?:nợ|vay|mượn))`, 'iu'));
+        if (m && pickPerson(m[1])) {
           subCat = 'Thu hồi nợ';
-          person = formatVietnamesePersonName(m[1]);
+          person = pickPerson(m[1]);
         }
       }
 
@@ -2612,53 +2636,53 @@ function scanGmail90Days_() {
       if (!subCat && /(?:thu\s+(?:hồi\s+)?nợ|đòi\s+nợ)/iu.test(lower)) {
         subCat = 'Thu hồi nợ';
         m = text.match(new RegExp(`(?:thu\\s+(?:hồi\\s+)?nợ|đòi\\s+nợ)\\s+(?:(?:của|từ)\\s+)?(${nameToken})`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        if (m) person = pickPerson(m[1]);
       }
 
-      // 4. Trả nợ: "Trả nợ (cho) [Tên]"
+      // 4. Trả nợ: "Trả nợ (cho) [Tên]" -> TIỀN RA / CHI
       if (!subCat && /(?:trả\s+nợ|trả\s+tiền\s+(?:nợ|vay|mượn))/iu.test(lower)) {
         subCat = 'Trả nợ';
         m = text.match(new RegExp(`(?:trả\\s+nợ|trả\\s+tiền\\s+(?:nợ|vay|mượn))\\s+(?:cho\\s+)?(${nameToken})`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        if (m) person = pickPerson(m[1]);
       }
 
-      // 5. Cho vay mới: "Cho [Tên] vay/mượn" hoặc "[Tên] vay/mượn tôi"
+      // 5. Cho vay mới: "Cho [Tên] vay/mượn" hoặc "[Tên] vay/mượn tôi" -> TIỀN RA / CHI
       if (!subCat) {
         m = text.match(new RegExp(`cho\\s+(${nameToken})\\s+(?:vay|mượn)`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
+        if (m && pickPerson(m[1])) {
           subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Cho vay mới';
-          person = formatVietnamesePersonName(m[1]);
+          person = pickPerson(m[1]);
           if (isOldPeriod) debtDir = 'they_owe';
         }
       }
       if (!subCat) {
         m = text.match(new RegExp(`^(${nameToken})\\s+(?:vay|mượn)\\s+(?:tôi|mình|em|việt)(?![\\p{L}])`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
+        if (m && pickPerson(m[1])) {
           subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Cho vay mới';
-          person = formatVietnamesePersonName(m[1]);
+          person = pickPerson(m[1]);
           if (isOldPeriod) debtDir = 'they_owe';
         }
       }
       if (!subCat && /(?:cho\s+vay|cho\s+mượn)/iu.test(lower)) {
         subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Cho vay mới';
         m = text.match(new RegExp(`(?:cho\\s+vay|cho\\s+mượn)\\s+(${nameToken})`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        if (m) person = pickPerson(m[1]);
         if (isOldPeriod) debtDir = 'they_owe';
       }
 
-      // 6. Đi vay mới / Nợ cũ: "(Tôi) vay/mượn [Tên]" hoặc "[Tên] cho tôi vay"
+      // 6. Đi vay mới / Nợ cũ: "(Tháng trước) tôi vay/mượn [Tên]" hoặc "[Tên] cho tôi vay"
       if (!subCat) {
         m = text.match(new RegExp(`^(${nameToken})\\s+cho\\s+(?:tôi|mình|em|việt)\\s+(?:vay|mượn)`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
+        if (m && pickPerson(m[1])) {
           subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Đi vay mới';
-          person = formatVietnamesePersonName(m[1]);
+          person = pickPerson(m[1]);
           if (isOldPeriod) debtDir = 'i_owe';
         }
       }
       if (!subCat && /(?:^|[^\p{L}])(?:đi\s+)?(?:vay|mượn)(?![\p{L}])/iu.test(lower)) {
         subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Đi vay mới';
-        m = text.match(new RegExp(`(?:đi\\s+)?(?:vay|mượn)\\s+(?:(?:của|từ)\\s+)?(${nameToken})`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        m = text.match(new RegExp(`(?:đi\\s+)?(?:vay|mượn)\\s+(?:(?:của|từ|tiền\\s+của|tiền\\s+từ|tiền)\\s+)?(${nameToken})`, 'iu'));
+        if (m) person = pickPerson(m[1]);
         if (isOldPeriod) debtDir = 'i_owe';
       }
 
@@ -2667,20 +2691,22 @@ function scanGmail90Days_() {
         subCat = 'Nợ cũ đầu kỳ';
         m = text.match(new RegExp(`nợ\\s+cũ\\s+(?:(?:của|từ|cho)\\s+)?(${nameToken})`, 'iu'))
           || text.match(new RegExp(`^(${nameToken})\\s+nợ\\s+cũ`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) person = formatVietnamesePersonName(m[1]);
+        if (m) person = pickPerson(m[1]);
       }
       if (!subCat) {
         m = text.match(new RegExp(`^(${nameToken})\\s+(?:đang\\s+)?nợ\\s+(?:tôi|mình|em|việt)(?![\\p{L}])`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
-          subCat = 'Cho vay mới';
-          person = formatVietnamesePersonName(m[1]);
+        if (m && pickPerson(m[1])) {
+          subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Cho vay mới';
+          person = pickPerson(m[1]);
+          if (isOldPeriod) debtDir = 'they_owe';
         }
       }
       if (!subCat) {
         m = text.match(new RegExp(`^(?:(?:tôi|mình|em|việt)\\s+)?(?:đang\\s+)?nợ\\s+(${nameToken})`, 'iu'));
-        if (m && !selfWords.test(m[1].trim())) {
-          subCat = 'Đi vay mới';
-          person = formatVietnamesePersonName(m[1]);
+        if (m && pickPerson(m[1])) {
+          subCat = isOldPeriod ? 'Nợ cũ đầu kỳ' : 'Đi vay mới';
+          person = pickPerson(m[1]);
+          if (isOldPeriod) debtDir = 'i_owe';
         }
       }
 
@@ -2708,78 +2734,118 @@ function scanGmail90Days_() {
       return null;
     }
 
-    function parseSingleVoiceClause(clause, inheritedDate) {
+    function parseVoiceClauseToItems(clause, inheritedDate) {
       const raw = String(clause || '').trim();
       const lower = raw.toLowerCase();
-      const date = inheritedDate || parseVietnameseDate(raw);
+      const date = hasExplicitVietnameseDate(raw) ? parseVietnameseDate(raw) : (inheritedDate || todayISO());
       const amount = parseVietnameseAmount(raw);
       let note = extractCleanVoiceNote(raw);
 
       // 0. Luân chuyển tiền nội bộ giữa 2 vợ chồng (Việt <-> Quỳnh):
-      // Ghi nhận 1 giao dịch duy nhất theo đúng mục đích chi tiêu gia đình (tránh tạo 2 khoản Thu + Chi trùng lặp)
+      // Tạo ĐỦ 2 giao dịch theo thực tế: 1 khoản Chi của người đưa + 1 khoản Thu của người nhận
       const isHusbandToWife = /(?:^|[^\p{L}])(?:tôi|mình|anh|bố|đặng\s+hồng\s+việt|hồng\s+việt|việt)\s+(?:đưa|chuyển(?:\s+khoản)?|gửi|giao)\s+(?:cho\s+)?(?:vợ\s+|em\s+|mẹ\s+)?(?:nguyễn\s+thị\s+như\s+quỳnh|như\s+quỳnh|quỳnh|vợ)(?![\p{L}])/iu.test(raw);
       const isWifeToHusband = /(?:^|[^\p{L}])(?:nguyễn\s+thị\s+như\s+quỳnh|như\s+quỳnh|quỳnh|vợ|mẹ)\s+(?:đưa|chuyển(?:\s+khoản)?|gửi|giao)\s+(?:cho\s+)?(?:chồng\s+|anh\s+|bố\s+)?(?:đặng\s+hồng\s+việt|hồng\s+việt|việt|tôi|mình|chồng)(?![\p{L}])/iu.test(raw);
       if (isHusbandToWife || isWifeToHusband) {
-        const purposeRaw = raw
-          .replace(/^.*?(?:quỳnh|vợ|việt|chồng|tôi|mình)\s*/iu, ' ')
-          .trim();
-        const classifyTarget = purposeRaw.length >= 3 ? purposeRaw : raw;
-        const cats = classifyExpenseFamilyAndSubCat(classifyTarget);
-        const cleanNote = note ? (note[0].toLocaleUpperCase('vi-VN') + note.slice(1)) : (isHusbandToWife ? 'Đưa Quỳnh tiền chi tiêu' : 'Quỳnh đưa tiền chi tiêu');
-        return normalizeTx({
-          date,
-          type: 'expense',
-          mainCat: cats.mainCat,
-          subCat: cats.subCat,
-          amount,
-          note: cleanNote,
-          source: 'voice'
-        });
+        const purposeClean = extractCleanVoiceNote(
+          raw.replace(/^.*?(?:quỳnh|vợ|việt|chồng)\s*/iu, ' ')
+        ).replace(/^(?:để|làm|về)\s+/iu, '').trim();
+        const purposeText = purposeClean.length >= 2 ? purposeClean : '';
+        const expenseSub = purposeText
+          ? (/(ăn|chợ|thực phẩm|cơm)/i.test(purposeText) ? 'Tiền ăn & Cà phê' : classifyExpenseFamilyAndSubCat(purposeText).subCat)
+          : 'Chi cá nhân khác';
+        const validParentSub = SUBCATS_PARENT.includes(expenseSub) ? expenseSub : 'Chi cá nhân khác';
+
+        if (isHusbandToWife) {
+          return [
+            normalizeTx({
+              date,
+              type: 'expense',
+              mainCat: 'Bố (Hồng Việt)',
+              subCat: validParentSub,
+              amount,
+              note: purposeText ? `Đưa Quỳnh ${purposeText}` : 'Đưa Quỳnh tiền chi tiêu',
+              source: 'voice'
+            }),
+            normalizeTx({
+              date,
+              type: 'income',
+              mainCat: 'Thu nhập Mẹ (Như Quỳnh)',
+              subCat: 'Thu khác',
+              amount,
+              note: purposeText ? `Quỳnh nhận từ Bố Việt (${purposeText})` : 'Quỳnh nhận tiền từ Bố Việt',
+              source: 'voice'
+            })
+          ];
+        }
+        return [
+          normalizeTx({
+            date,
+            type: 'expense',
+            mainCat: 'Mẹ (Như Quỳnh)',
+            subCat: validParentSub,
+            amount,
+            note: purposeText ? `Quỳnh đưa Bố Việt ${purposeText}` : 'Quỳnh đưa Bố Việt tiền chi tiêu',
+            source: 'voice'
+          }),
+          normalizeTx({
+            date,
+            type: 'income',
+            mainCat: 'Thu nhập Bố (Hồng Việt)',
+            subCat: 'Thu khác',
+            amount,
+            note: purposeText ? `Bố Việt nhận từ Quỳnh (${purposeText})` : 'Bố Việt nhận tiền từ Quỳnh',
+            source: 'voice'
+          })
+        ];
       }
 
       // 1. Kiểm tra Vay / Nợ trước
       const debtInfo = extractDebtInfo(raw);
       if (debtInfo) {
-        let debtNote = note;
-        if (!debtNote || /^(?:vay|mượn|cho\s+vay|trả\s+nợ|thu\s+nợ)$/iu.test(debtNote)) {
-          const actionTitle = debtInfo.subCat === 'Đi vay mới' || (debtInfo.subCat === 'Nợ cũ đầu kỳ' && debtInfo.debtDir === 'i_owe')
-            ? 'Vay tiền'
-            : debtInfo.subCat === 'Cho vay mới'
-              ? 'Cho vay tiền'
-              : debtInfo.subCat;
-          debtNote = debtInfo.person ? `${actionTitle} ${debtInfo.person}` : actionTitle;
+        const isBorrow = debtInfo.subCat === 'Đi vay mới' || (debtInfo.subCat === 'Nợ cũ đầu kỳ' && debtInfo.debtDir === 'i_owe');
+        const isLend = debtInfo.subCat === 'Cho vay mới' || (debtInfo.subCat === 'Nợ cũ đầu kỳ' && debtInfo.debtDir !== 'i_owe');
+        let debtNote = '';
+        if (isBorrow) {
+          debtNote = debtInfo.person ? `Vay tiền ${debtInfo.person}` : 'Vay tiền';
+        } else if (isLend) {
+          debtNote = debtInfo.person ? `Cho ${debtInfo.person} vay tiền` : 'Cho vay tiền';
+        } else if (debtInfo.subCat === 'Thu hồi nợ') {
+          debtNote = debtInfo.person ? `Được ${debtInfo.person} trả nợ` : 'Được trả nợ (Thu hồi nợ)';
+        } else {
+          debtNote = debtInfo.person ? `Trả nợ ${debtInfo.person}` : 'Trả nợ';
         }
-        return normalizeTx({
+        return [normalizeTx({
           date,
           type: 'debt',
           mainCat: 'Vay / Nợ',
           subCat: debtInfo.subCat,
           amount,
-          note: debtNote[0].toLocaleUpperCase('vi-VN') + debtNote.slice(1),
+          note: debtNote,
           person: debtInfo.person || '',
           debtDir: debtInfo.debtDir || '',
           source: 'voice'
-        });
+        })];
       }
 
-      // 2. Phân biệt rõ Thu nhập vs Chi tiêu (xử lý chuẩn "Ai đó cho tôi..." vs "Tôi cho ai đó...", trúng thưởng, nhặt được, mất ví...)
-      const isUnexpectedGain = /(?:^|[^\p{L}])(?:trúng\s*(?:sổ\s*xố|xổ\s*số|vietlott|đề|lô|vé\s*số|thưởng|giải)|nhặt\s*được|lượm\s*được|bắt\s*được\s*tiền)(?![\p{L}])/iu.test(raw);
-      const isUnexpectedLoss = /(?:^|[^\p{L}])(?:mất\s*(?:ví|tiền|của|đồ|túi|bóp)|bị\s*(?:mất|rơi|trộm|móc\s*túi|phạt)|đánh\s*rơi|làm\s*mất|rơi\s*mất|nộp\s*phạt|bị\s*phạt)(?![\p{L}])/iu.test(raw);
-      const isGivenToMe = /(?:được\s+[\p{L}\s]{1,25}?\s*(?:cho|tặng|biếu|chuyển|gửi)|(?:ai\s+đó|người\s+ta|khách|sếp|công\s+ty|bố|mẹ|ông|bà|anh|chị|em|bạn)\s+(?:cho|tặng|biếu|chuyển|gửi|lì\s+xì)\s+(?:tôi|mình|em|việt|quỳnh)|(?:cho|tặng|biếu|chuyển|gửi)\s+(?:tôi|mình|việt|quỳnh)(?![\p{L}]))/iu.test(raw);
-      const isIGiveAway = /^(?:(?:tôi|mình|em|anh|việt|quỳnh)\s+)?(?:cho|tặng|biếu|lì\s+xì|gửi\s+tặng)\s+(?!tôi\b|mình\b)/iu.test(raw);
+      // 2. Mở rộng nhận diện Thu nhập & Chi tiêu phát sinh đời thường
+      const isUnexpectedGain = /(?:^|[^\p{L}])(?:trúng\s*(?:sổ\s*xố|xổ\s*số|vietlott|đề|lô|vé\s*số|thưởng|giải)|nhặt\s*được|lượm\s*được|tìm\s*thấy\s*tiền|bắt\s*được\s*tiền|bán\s+đồ|thanh\s+lý|pass\s+đồ|tiền\s+boa|tiền\s+tip|hoa\s+hồng|cho\s+thuê\s+nhà)(?![\p{L}])/iu.test(raw);
+      const isUnexpectedLoss = /(?:^|[^\p{L}])(?:mất\s*(?:ví|tiền|của|đồ|túi|bóp)|bị\s*(?:mất|rơi|trộm|móc\s*túi|phạt|lừa)|đánh\s*rơi|làm\s*mất|rơi\s*mất|nộp\s*phạt|phạt\s*nguội|đền\s*bù|bồi\s*thường|quyên\s*góp|từ\s*thiện|ủng\s*hộ|công\s*đức)(?![\p{L}])/iu.test(raw);
+      const isGivenToMe = /(?:được\s+[\p{L}\s]{1,25}?\s*(?:cho|tặng|biếu|chuyển|gửi|lì\s+xì|mừng\s+tuổi)|(?:ai\s+đó|người\s+ta|khách|sếp|công\s+ty|bố|mẹ|ông|bà|anh|chị|em|bạn)\s+(?:cho|tặng|biếu|chuyển|gửi|lì\s+xì|mừng\s+tuổi)\s+(?:tôi|mình|em|việt|quỳnh)|(?:cho|tặng|biếu|chuyển|gửi|lì\s+xì)\s+(?:tôi|mình|việt|quỳnh)(?![\p{L}]))/iu.test(raw);
+      const isIGiveAway = /^(?:(?:tôi|mình|em|anh|việt|quỳnh)\s+)?(?:cho|tặng|biếu|lì\s+xì|mừng\s+tuổi|gửi\s+tặng)\s+(?!tôi\b|mình\b)/iu.test(raw);
 
       const isIncome = !isIGiveAway && !isUnexpectedLoss && (
         isUnexpectedGain ||
         isGivenToMe ||
-        /(?:^|[^\p{L}])(?:thu\s+nhập|thu\s+tiền|thu\s+về|nhận\s+tiền|nhận\s+lương|lĩnh\s+lương|tiền\s+lương|lương\s+tháng|thưởng|phụ\s+cấp|hoàn\s+tiền|tiền\s+lãi|lãi\s+tiết\s+kiệm|bán\s+hàng|doanh\s+thu)(?![\p{L}])/iu.test(raw) ||
+        /(?:^|[^\p{L}])(?:thu\s+nhập|thu\s+tiền|thu\s+về|nhận\s+tiền|nhận\s+lương|lĩnh\s+lương|tiền\s+lương|lương\s+tháng|thưởng|phụ\s+cấp|hoàn\s+tiền|cashback|tiền\s+lãi|lãi\s+tiết\s+kiệm|cổ\s+tức|bán\s+hàng|doanh\s+thu)(?![\p{L}])/iu.test(raw) ||
         /^thu\s+/iu.test(lower)
       );
 
       if (isIncome) {
         const hist = lookupHistoricalCategory(note, 'income');
         const cats = hist || classifyIncomeFamilyAndSubCat(raw);
-        const cleanNote = note ? (note[0].toLocaleUpperCase('vi-VN') + note.slice(1)) : cats.subCat;
-        return normalizeTx({
+        let cleanNote = note ? (note[0].toLocaleUpperCase('vi-VN') + note.slice(1)) : cats.subCat;
+        if (/^nhặt\s+được$/i.test(cleanNote) || /^lượm\s+được$/i.test(cleanNote)) cleanNote += ' tiền';
+        return [normalizeTx({
           date,
           type: 'income',
           mainCat: cats.mainCat,
@@ -2787,7 +2853,7 @@ function scanGmail90Days_() {
           amount,
           note: cleanNote,
           source: 'voice'
-        });
+        })];
       }
 
       // 3. Khoản Chi tiêu: phân loại vào Cả nhà / Bơ / Pu / Bố / Mẹ + Mục Nhỏ chi tiết
@@ -2800,7 +2866,7 @@ function scanGmail90Days_() {
         cats.subCat = 'Chi khác';
       }
       const cleanNote = note ? (note[0].toLocaleUpperCase('vi-VN') + note.slice(1)) : cats.subCat;
-      return normalizeTx({
+      return [normalizeTx({
         date,
         type: 'expense',
         mainCat: cats.mainCat,
@@ -2808,14 +2874,22 @@ function scanGmail90Days_() {
         amount,
         note: cleanNote,
         source: 'voice'
-      });
+      })];
     }
 
     function parseVoiceTranscriptMulti(transcript) {
       const clauses = splitMultiVoiceClauses(transcript);
       if (!clauses.length) return [];
-      const sharedDate = parseVietnameseDate(transcript);
-      return clauses.map(c => parseSingleVoiceClause(c, sharedDate));
+      let runningDate = hasExplicitVietnameseDate(transcript) ? parseVietnameseDate(transcript) : todayISO();
+      const allItems = [];
+      clauses.forEach(c => {
+        if (hasExplicitVietnameseDate(c)) {
+          runningDate = parseVietnameseDate(c);
+        }
+        const items = parseVoiceClauseToItems(c, runningDate);
+        items.forEach(it => allItems.push(it));
+      });
+      return allItems;
     }
 
     function openVoiceConfirmModal(transcript) {
@@ -2840,15 +2914,28 @@ function scanGmail90Days_() {
       container.innerHTML = items.map((it, idx) => {
         const isInc = it.type === 'income';
         const isDebt = it.type === 'debt';
+        const isDebtIn = isDebt && (it.subCat === 'Thu hồi nợ' || it.subCat === 'Đi vay mới' || (it.subCat === 'Nợ cũ đầu kỳ' && it.debtDir === 'i_owe'));
         const badge = isInc
           ? 'bg-emerald-50 text-emerald-700 border-emerald-200'
           : isDebt
-            ? 'bg-violet-50 text-violet-700 border-violet-200'
+            ? (isDebtIn ? 'bg-emerald-50 text-emerald-800 border-emerald-200' : 'bg-violet-50 text-violet-700 border-violet-200')
             : 'bg-rose-50 text-rose-700 border-rose-200';
-        const typeLabel = isInc ? '↗ Thu nhập' : isDebt ? '🤝 Vay / Nợ' : '↘ Chi tiêu';
+        const typeLabel = isInc
+          ? '↗ Thu nhập'
+          : isDebt
+            ? (it.subCat === 'Thu hồi nợ'
+              ? '🤝 Thu hồi nợ (↗ Tiền vào / Thu)'
+              : it.subCat === 'Đi vay mới'
+                ? '🤝 Đi vay (↗ Tiền vào)'
+                : it.subCat === 'Trả nợ'
+                  ? '🤝 Trả nợ (↘ Tiền ra / Chi)'
+                  : it.subCat === 'Cho vay mới'
+                    ? '🤝 Cho vay (↘ Tiền ra / Chi)'
+                    : (it.debtDir === 'i_owe' ? '🤝 Khoản vay cũ (Mình nợ)' : '🤝 Khoản nợ cũ (Họ nợ mình)'))
+            : '↘ Chi tiêu';
         const roleLabel = it.subCat === 'Thu hồi nợ'
-          ? '👤 Người trả nợ (Thu về)'
-          : it.subCat === 'Cho vay mới'
+          ? '👤 Người trả nợ'
+          : (it.subCat === 'Cho vay mới' || (it.subCat === 'Nợ cũ đầu kỳ' && it.debtDir !== 'i_owe'))
             ? '👤 Người vay'
             : '👤 Người cho vay';
 
@@ -2864,10 +2951,13 @@ function scanGmail90Days_() {
                 <div class="mt-0.5 text-[11px] text-slate-500">📅 ${formatDisplayDate(it.date)}${it.person ? ` • ${roleLabel}: <b class="text-violet-700">${escapeHtml(it.person)}</b>` : ''}</div>
               </div>
               <div class="text-right shrink-0">
-                <div class="text-sm font-extrabold ${isInc ? 'text-emerald-600' : isDebt ? 'text-violet-700' : 'text-rose-600'}">
+                <div class="text-sm font-extrabold ${isInc || isDebtIn ? 'text-emerald-600' : isDebt ? 'text-violet-700' : 'text-rose-600'}">
                   ${it.amount > 0 ? formatVND(it.amount) : 'Chưa rõ tiền'}
                 </div>
-                <button type="button" data-voice-edit-idx="${idx}" class="mt-1.5 px-2.5 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700">✏️ Sửa chi tiết</button>
+                <div class="mt-1.5 flex items-center justify-end gap-1">
+                  <button type="button" data-voice-edit-idx="${idx}" class="px-2 py-1 rounded-lg bg-slate-100 hover:bg-slate-200 text-[10px] font-bold text-slate-700">✏️ Sửa</button>
+                  <button type="button" data-voice-remove-idx="${idx}" class="px-2 py-1 rounded-lg bg-rose-50 hover:bg-rose-100 text-[10px] font-bold text-rose-600">✕</button>
+                </div>
               </div>
             </div>
           </div>
@@ -2881,6 +2971,13 @@ function scanGmail90Days_() {
           if (!item) return;
           closeModal('voiceConfirmModal');
           openTxModal(item, true);
+        });
+      });
+      container.querySelectorAll('[data-voice-remove-idx]').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const idx = Number(btn.dataset.voiceRemoveIdx);
+          state.voiceParsedItems.splice(idx, 1);
+          renderVoiceConfirmList();
         });
       });
     }
@@ -3993,8 +4090,19 @@ function scanGmail90Days_() {
 
       const t6c = parseVoiceTranscriptMulti('Tôi đưa cho Quỳnh 3 triệu tiền ăn');
       assert(
-        '6c. Chuyển tiền nội bộ vợ chồng -> 1 khoản Chi đúng mục đích (không nhân đôi)',
-        t6c.length === 1 && t6c[0].type === 'expense' && t6c[0].mainCat === 'Cả nhà' && t6c[0].subCat === 'Tiền ăn & Thực phẩm' && t6c[0].amount === 3000000
+        '6c. Tôi đưa Quỳnh 3 triệu tiền ăn -> 2 giao dịch (Bố chi 3tr + Quỳnh thu 3tr)',
+        t6c.length === 2 &&
+        t6c[0].type === 'expense' && t6c[0].mainCat === 'Bố (Hồng Việt)' && t6c[0].amount === 3000000 &&
+        t6c[1].type === 'income' && t6c[1].mainCat === 'Thu nhập Mẹ (Như Quỳnh)' && t6c[1].amount === 3000000
+      );
+
+      const t6d = parseVoiceTranscriptMulti('Lĩnh lương 15 triệu, đóng tiền điện 800k, cho anh Nam vay 2 triệu và tôi vay chị Hoa 1 triệu');
+      assert(
+        '6d. Tách chuẩn 4 loại Thu + Chi + Cho vay + Đi vay trong 1 câu',
+        t6d.length === 4 &&
+        t6d[0].type === 'income' && t6d[1].type === 'expense' &&
+        t6d[2].type === 'debt' && t6d[2].subCat === 'Cho vay mới' && t6d[2].person === 'Anh Nam' &&
+        t6d[3].type === 'debt' && t6d[3].subCat === 'Đi vay mới' && t6d[3].person === 'Chị Hoa'
       );
 
       const bill1 = parseBillTextClientFallback('CON CƯNG\nSữa bột cho bé Pu\nTổng thanh toán: 540.000đ');
