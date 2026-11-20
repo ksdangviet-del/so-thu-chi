@@ -10,7 +10,9 @@
   <meta name="theme-color" content="#0f172a" />
   <title>Sổ Thu Chi Thông Minh</title>
 
-  <!-- Manifest PWA động sẽ được JS cập nhật kèm link Sheets -->
+  <!-- Biểu tượng App (iOS apple-touch-icon & Favicon) + Manifest PWA động -->
+  <link id="apple-touch-icon-link" rel="apple-touch-icon" sizes="180x180" href="" />
+  <link id="favicon-link" rel="icon" type="image/png" href="" />
   <link id="dynamic-manifest" rel="manifest" href="" />
 
   <!-- Phông chữ Inter -->
@@ -519,50 +521,54 @@
               📦 Xuất sao lưu JSON
             </button>
           </div>
+          <button id="btnCopyFullIndexHtml" type="button"
+            class="w-full h-11 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition text-white font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm">
+            <span>📋</span><span>Sao chép toàn bộ mã index.html (Cập nhật GitHub)</span>
+          </button>
         </div>
       </div>
     </div>
   </div>
 
-  <!-- ==================== MODAL 4: XÁC NHẬN NÓI AI (ĐA GIAO DỊCH) ==================== -->
+  <!-- ==================== MODAL 4: XÁC NHẬN GIAO DỊCH NÓI AI (ĐA GIAO DỊCH) ==================== -->
   <div id="voiceConfirmModal" class="modal-backdrop hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="modal-panel bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl max-h-[92dvh] overflow-y-auto shadow-2xl">
       <div class="sticky top-0 bg-white/95 backdrop-blur px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between z-10">
         <div>
           <h3 class="text-base font-extrabold text-slate-900">🎙️ Xác Nhận Nói AI</h3>
-          <p id="voiceConfirmSummary" class="text-[11px] font-medium text-slate-500">Kiểm tra giao dịch AI vừa phân tích</p>
+          <p id="voiceConfirmSummary" class="text-[11px] font-medium text-indigo-600">AI đã tự phân loại chi tiết</p>
         </div>
         <button type="button" data-close-modal="voiceConfirmModal" class="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold">✕</button>
       </div>
 
       <div class="p-5 space-y-3.5">
-        <div class="p-3 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2">
+        <div class="p-3 rounded-2xl bg-slate-50 border border-slate-200 space-y-2">
           <div class="flex items-center justify-between">
-            <label class="text-[10px] font-extrabold text-indigo-900 uppercase">Câu thoại nhận được (có thể sửa)</label>
-            <button id="btnReparseVoiceText" type="button" class="px-2.5 py-1 rounded-lg bg-indigo-600 text-white text-[10px] font-bold">Phân tích lại</button>
+            <label class="text-[11px] font-bold text-slate-500 uppercase">Câu thoại nhận diện (có thể sửa nhanh)</label>
+            <button id="btnReparseVoiceText" type="button" class="text-[11px] font-bold text-indigo-600 hover:underline">🔄 Phân tích lại</button>
           </div>
           <textarea id="voiceRawEditInput" rows="2" placeholder="VD: Mua sữa cho Pu 450k và đóng tiền học cho Bơ 1 triệu 2"
-            class="w-full p-2.5 rounded-xl border border-indigo-200 bg-white text-xs font-medium text-slate-800 focus:outline-none"></textarea>
+            class="w-full p-2.5 rounded-xl border border-slate-200 bg-white text-xs font-medium text-slate-800 focus:outline-none focus:ring-2 focus:ring-indigo-300"></textarea>
           <div class="flex items-center gap-1.5 overflow-x-auto no-scrollbar pt-0.5">
             <button type="button" data-voice-sample="Mua sữa cho Pu 450k và đóng tiền học cho Bơ 1 triệu 2"
-              class="px-2 py-1 rounded-lg bg-white border border-indigo-200 text-[10px] font-semibold text-indigo-700 shrink-0">Thử: 2 bé Bơ & Pu</button>
-            <button type="button" data-voice-sample="Đóng tiền điện 850k, tiền nước 140k"
-              class="px-2 py-1 rounded-lg bg-white border border-indigo-200 text-[10px] font-semibold text-indigo-700 shrink-0">Thử: Điện & Nước</button>
-            <button type="button" data-voice-sample="Tháng trước tôi vay Hà Chéc 20 triệu"
-              class="px-2 py-1 rounded-lg bg-white border border-indigo-200 text-[10px] font-semibold text-indigo-700 shrink-0">Thử: Vay cũ</button>
+              class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-semibold text-slate-600 hover:border-indigo-300 shrink-0">Thử: Bơ & Pu</button>
+            <button type="button" data-voice-sample="Tôi được anh Hùng trả nợ 2 triệu"
+              class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-semibold text-slate-600 hover:border-indigo-300 shrink-0">Thử: Được trả nợ</button>
+            <button type="button" data-voice-sample="Hôm qua tôi trúng sổ xố được 1 triệu, trên đường đi về tôi nhặt được 100, tôi bị mất ví trong đó có 2 triệu"
+              class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-semibold text-slate-600 hover:border-indigo-300 shrink-0">Thử: Thu/Chi phát sinh</button>
+            <button type="button" data-voice-sample="Tôi đưa cho Quỳnh 3 triệu tiền ăn"
+              class="px-2 py-1 rounded-lg bg-white border border-slate-200 text-[10px] font-semibold text-slate-600 hover:border-indigo-300 shrink-0">Thử: Đưa vợ tiền ăn</button>
           </div>
         </div>
 
         <div id="voiceParsedList" class="space-y-2.5"></div>
 
-        <div class="pt-1 grid grid-cols-3 gap-2">
+        <div class="pt-1 flex gap-2.5">
           <button id="btnVoiceRetry" type="button"
-            class="h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 active:scale-95 transition text-slate-700 font-bold text-xs flex items-center justify-center gap-1">
-            <span>🎙️</span><span>Nói lại</span>
-          </button>
+            class="flex-1 h-12 rounded-2xl bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs">🎙️ Nói lại</button>
           <button id="btnVoiceSaveAll" type="button"
-            class="col-span-2 h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 active:scale-[0.99] transition text-white font-extrabold text-sm shadow-md shadow-emerald-500/25">
-            ✅ Lưu ngay
+            class="flex-[2] h-12 rounded-2xl bg-indigo-600 hover:bg-indigo-700 active:scale-[0.99] transition text-white font-extrabold text-sm shadow-md shadow-indigo-500/25">
+            ✅ Lưu tất cả giao dịch
           </button>
         </div>
       </div>
@@ -1837,8 +1843,109 @@ function scanGmail90Days_() {
       return '';
     }
 
+    function generateAppIconPngDataUrl(size = 512) {
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = size;
+        canvas.height = size;
+        const ctx = canvas.getContext('2d');
+        const s = size / 512;
+
+        // 1. Nền chuyển sắc chàm - tím sang trọng
+        const bgGrad = ctx.createLinearGradient(0, 0, size, size);
+        bgGrad.addColorStop(0, '#0f172a');
+        bgGrad.addColorStop(0.55, '#312e81');
+        bgGrad.addColorStop(1, '#4f46e5');
+        ctx.fillStyle = bgGrad;
+        ctx.fillRect(0, 0, size, size);
+
+        // Vầng sáng nhẹ góc trên trái
+        const glow = ctx.createRadialGradient(130 * s, 110 * s, 10 * s, 180 * s, 160 * s, 260 * s);
+        glow.addColorStop(0, 'rgba(129, 140, 248, 0.35)');
+        glow.addColorStop(1, 'rgba(15, 23, 42, 0)');
+        ctx.fillStyle = glow;
+        ctx.fillRect(0, 0, size, size);
+
+        // 2. Thân ví / sổ thu chi màu trắng ngà bo tròn
+        const drawRoundRect = (x, y, w, h, r) => {
+          ctx.beginPath();
+          ctx.moveTo(x + r, y);
+          ctx.arcTo(x + w, y, x + w, y + h, r);
+          ctx.arcTo(x + w, y + h, x, y + h, r);
+          ctx.arcTo(x, y + h, x, y, r);
+          ctx.arcTo(x, y, x + w, y, r);
+          ctx.closePath();
+        };
+
+        ctx.save();
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.32)';
+        ctx.shadowBlur = 28 * s;
+        ctx.shadowOffsetY = 14 * s;
+        drawRoundRect(108 * s, 132 * s, 296 * s, 248 * s, 48 * s);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.restore();
+
+        // Nắp khóa ví bên phải
+        drawRoundRect(326 * s, 214 * s, 94 * s, 84 * s, 26 * s);
+        ctx.fillStyle = '#e0e7ff';
+        ctx.fill();
+
+        ctx.beginPath();
+        ctx.arc(360 * s, 256 * s, 14 * s, 0, Math.PI * 2);
+        ctx.fillStyle = '#4f46e5';
+        ctx.fill();
+
+        // 3. Đồng xu vàng kim biểu tượng Thu Chi "₫"
+        const coinGrad = ctx.createLinearGradient(160 * s, 180 * s, 290 * s, 330 * s);
+        coinGrad.addColorStop(0, '#fde047');
+        coinGrad.addColorStop(0.5, '#f59e0b');
+        coinGrad.addColorStop(1, '#d97706');
+        ctx.beginPath();
+        ctx.arc(224 * s, 256 * s, 74 * s, 0, Math.PI * 2);
+        ctx.fillStyle = coinGrad;
+        ctx.fill();
+
+        ctx.lineWidth = 6 * s;
+        ctx.strokeStyle = '#fef08a';
+        ctx.stroke();
+
+        ctx.fillStyle = '#ffffff';
+        ctx.font = `800 ${Math.round(88 * s)}px Inter, -apple-system, sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText('₫', 224 * s, 261 * s);
+
+        // 4. Dấu chấm xanh ngọc nhỏ góc trên biểu thị đồng bộ AI
+        ctx.beginPath();
+        ctx.arc(374 * s, 156 * s, 22 * s, 0, Math.PI * 2);
+        ctx.fillStyle = '#10b981';
+        ctx.fill();
+        ctx.lineWidth = 6 * s;
+        ctx.strokeStyle = '#ffffff';
+        ctx.stroke();
+
+        return canvas.toDataURL('image/png');
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function applyCustomAppIcons() {
+      const icon180 = generateAppIconPngDataUrl(180);
+      const icon512 = generateAppIconPngDataUrl(512);
+      if (icon180) {
+        const appleLink = document.getElementById('apple-touch-icon-link');
+        if (appleLink) appleLink.href = icon180;
+        const favLink = document.getElementById('favicon-link');
+        if (favLink) favLink.href = icon180;
+      }
+      return icon512 || icon180;
+    }
+
     function updateDynamicManifest(gasUrl) {
       try {
+        const appIconUrl = applyCustomAppIcons();
         const base = window.location.origin && window.location.origin !== 'null'
           ? window.location.origin + window.location.pathname
           : window.location.href.split('?')[0].split('#')[0];
@@ -1851,7 +1958,11 @@ function scanGmail90Days_() {
           display: 'standalone',
           background_color: '#f8fafc',
           theme_color: '#0f172a',
-          orientation: 'portrait'
+          orientation: 'portrait',
+          icons: appIconUrl ? [
+            { src: appIconUrl, sizes: '192x192', type: 'image/png', purpose: 'any maskable' },
+            { src: appIconUrl, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }
+          ] : []
         };
         const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
         const link = document.getElementById('dynamic-manifest');
@@ -4080,6 +4191,10 @@ function scanGmail90Days_() {
       });
       document.getElementById('btnLoadSample').addEventListener('click', loadSampleTransactions);
       document.getElementById('btnRunSelfTest').addEventListener('click', runFullSelfTest);
+      document.getElementById('btnCopyFullIndexHtml').addEventListener('click', () => {
+        const fullHtml = '<!DOCTYPE html>\n' + document.documentElement.outerHTML;
+        copyTextSafe(fullHtml, 'Đã sao chép trọn bộ mã index.html để dán đè lên GitHub!');
+      });
       document.getElementById('btnExportJson').addEventListener('click', () => {
         try {
           const blob = new Blob([JSON.stringify(state.transactions, null, 2)], { type: 'application/json' });
