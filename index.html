@@ -1654,19 +1654,19 @@ function jsonResponse_(obj) {
         return Math.round(hundreds + tens);
       }
 
-      // 3. Dạng "X nghìn / ngàn / k / ca / ka"
-      m = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:nghìn|ngàn|k|ca|ka)\b/i);
+      // 3. Dạng "X nghìn / ngàn / k / ca / ka" (VD: 500k, 150 nghìn, 200 ngàn)
+      m = normalized.match(/(\d+(?:[.,]\d+)?)\s*(?:nghìn|ngàn|k|ca|ka)(?![\p{L}])/iu);
       if (m) {
         return Math.round((parseFloat(m[1].replace(',', '.')) || 0) * 1000);
       }
 
-      // 4. Số trần (VD: "500.000", "250000" hoặc "nhặt được 100")
-      const plainNums = normalized.match(/\b\d[\d.,]*\b/g);
+      // 4. Số trần viết liền hoặc có dấu chấm/phẩy (VD: "20000", "500.000", "250000" hoặc "nhặt được 100")
+      const plainNums = normalized.match(/\b\d+(?:[.,]\d{3})*\b/g);
       if (plainNums) {
         for (const token of plainNums) {
           const digits = Number(token.replace(/[.,]/g, ''));
           if (digits >= 1000) return digits;
-          if (digits >= 10 && digits < 1000 && /(nhặt|lượm|cho|xin|trúng|mất|hết|tốn|giá|mua|trả|vay)/i.test(normalized)) {
+          if (digits >= 10 && digits < 1000 && /(nhặt|lượm|cho|tặng|biếu|xin|trúng|mất|hết|tốn|giá|mua|trả|vay|thu|nhận|đóng|gửi|đưa)/i.test(normalized)) {
             return digits * 1000;
           }
         }
@@ -1678,8 +1678,8 @@ function jsonResponse_(obj) {
       const lower = normalizeVietnameseNumberWords(rawText).toLowerCase();
       const base = new Date();
 
-      // 1. Dạng ngày/tháng/năm cụ thể: "15/10/2026", "ngày 5/11", "mùng 8 tháng 9 năm 2025", "ngày 12 tháng này"
-      const fullDateMatch = lower.match(/(?:ngày|mùng|mồng)?\s*(\d{1,2})\s*(?:tháng|[\/\-])\s*(\d{1,2})(?:\s*(?:năm|[\/\-])\s*(\d{2,4}))?/);
+      // 1. Dạng ngày/tháng/năm cụ thể (ở bất kỳ vị trí nào: đầu câu, giữa câu hay cuối câu)
+      const fullDateMatch = lower.match(/(?:ngày\s+mùng|ngày\s+mồng|ngày|mùng|mồng)?\s*(\d{1,2})\s*(?:tháng|[\/\-])\s*(\d{1,2})(?:\s*(?:năm|[\/\-])\s*(\d{2,4}))?/);
       if (fullDateMatch) {
         const day = Number(fullDateMatch[1]);
         const month = Number(fullDateMatch[2]) - 1;
@@ -1694,7 +1694,7 @@ function jsonResponse_(obj) {
       }
 
       // 2. Dạng "ngày 15 tháng trước" / "mùng 10 tháng này"
-      const dayInRelMonth = lower.match(/(?:ngày|mùng|mồng)\s*(\d{1,2})(?:\s*(tháng\s+trước|tháng\s+này))?/);
+      const dayInRelMonth = lower.match(/(?:ngày\s+mùng|ngày\s+mồng|ngày|mùng|mồng)\s*(\d{1,2})(?:\s*(tháng\s+trước|tháng\s+này))?/);
       if (dayInRelMonth) {
         const day = Number(dayInRelMonth[1]);
         if (dayInRelMonth[2] && /tháng\s+trước/.test(dayInRelMonth[2])) {
@@ -1706,7 +1706,7 @@ function jsonResponse_(obj) {
         }
       }
 
-      // 3. Mốc thời gian tương đối tiếng Việt
+      // 3. Mốc thời gian tương đối tiếng Việt (đầu câu hoặc cuối câu)
       if (/hôm\s+kia|hôm\s+kìa/.test(lower)) base.setDate(base.getDate() - 2);
       else if (/hôm\s+qua|tối\s+qua|chiều\s+qua|sáng\s+qua|đêm\s+qua/.test(lower)) base.setDate(base.getDate() - 1);
       else if (/tuần\s+trước/.test(lower)) base.setDate(base.getDate() - 7);
@@ -1722,8 +1722,8 @@ function jsonResponse_(obj) {
     function stripTimeAndAmountTokens(rawText) {
       return String(rawText || '')
         .replace(/(?:vào\s+)?(?:hôm\s+qua|hôm\s+kia|hôm\s+nay|sáng\s+nay|trưa\s+nay|chiều\s+nay|tối\s+nay|tối\s+qua|sáng\s+qua|chiều\s+qua|tuần\s+trước|đầu\s+tháng\s+trước|cuối\s+tháng\s+trước|tháng\s+trước|đầu\s+tháng|năm\s+ngoái|năm\s+trước)\s*,?\s*/gi, ' ')
-        .replace(/(?:vào\s+)?(?:ngày|mùng|mồng)?\s*\d{1,2}\s*(?:tháng|[\/\-])\s*\d{1,2}(?:\s*(?:năm|[\/\-])\s*\d{2,4})?\s*,?\s*/gi, ' ')
-        .replace(/(?:vào\s+)?(?:ngày|mùng|mồng)\s*\d{1,2}\s*,?\s*/gi, ' ')
+        .replace(/(?:vào\s+)?(?:ngày\s+mùng|ngày\s+mồng|ngày|mùng|mồng)?\s*\d{1,2}\s*(?:tháng|[\/\-])\s*\d{1,2}(?:\s*(?:năm|[\/\-])\s*\d{2,4})?\s*,?\s*/gi, ' ')
+        .replace(/(?:vào\s+)?(?:ngày\s+mùng|ngày\s+mồng|ngày|mùng|mồng)\s*\d{1,2}\s*,?\s*/gi, ' ')
         .replace(/\b(?:hết|mất|tốn|khoảng|tổng\s+cộng|là|được|số\s+tiền)\s+(?=\d|một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười)/gi, ' ')
         .replace(/\b\d+(?:[.,]\d+)?\s*(?:triệu|tr|củ|nghìn|ngàn|k|ca|ka|trăm|xị|lít|đồng|vnd|đ)(?:\s*rưỡi|\s*\d+(?:[.,]\d+)?\s*(?:trăm|nghìn|ngàn|k|ca|ka)?)?\b/gi, ' ')
         .replace(/\b(?:một|hai|ba|bốn|năm|sáu|bảy|tám|chín|mười)\s*(?:triệu|tr|củ|nghìn|ngàn|trăm)(?:\s*rưỡi)?\b/gi, ' ')
@@ -1735,8 +1735,14 @@ function jsonResponse_(obj) {
     }
 
     function extractCounterpartyPerson(rawText) {
-      const text = String(rawText || '').trim();
-      // 1. Tìm cụm danh xưng (kể cả viết thường: anh Hùng, chị Hoa, bạn Nam...) + Tên riêng viết hoa
+      // Loại bỏ cụm ngày/tháng/năm trước khi tách tên người để tránh dính chữ "Ngày", "Tháng"...
+      const text = String(rawText || '')
+        .replace(/(?:vào\s+)?(?:ngày\s+mùng|ngày\s+mồng|ngày|mùng|mồng)?\s*\d{1,2}\s*(?:tháng|[\/\-])\s*\d{1,2}(?:\s*(?:năm|[\/\-])\s*\d{2,4})?/gi, ' ')
+        .replace(/\b(?:hôm\s+qua|hôm\s+kia|hôm\s+nay|tháng\s+trước|tuần\s+trước|năm\s+ngoái)\b/gi, ' ')
+        .replace(/\s+/g, ' ')
+        .trim();
+
+      // 1. Tìm cụm danh xưng (anh Hùng, chị Hoa, bạn Nam...) + Tên riêng viết hoa
       const titledMatch = text.match(/(?:^|[\s,])(?:của|từ|cho|với|bác|chú|cô|dì|anh|chị|em|bạn|ông|bà|sếp|thầy|cô\s+giáo)\s+([A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+){0,2})/u);
       if (titledMatch) {
         const candidate = titledMatch[1].trim();
@@ -1744,8 +1750,8 @@ function jsonResponse_(obj) {
           return candidate;
         }
       }
-      // 2. Tên riêng 2-3 âm tiết viết hoa đứng đầu câu hoặc ngay sau động từ vay/cho/trả
-      const properMatch = text.match(/(?:^|(?:vay|cho|mượn|trả\s+nợ|thu\s+nợ|xin)\s+)([A-ZÀ-Ỹ][a-zà-ỹ]+\s+[A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+)?)/u);
+      // 2. Tên riêng 2-3 âm tiết viết hoa (VD: "Hà Chéc cho 20000", "vay Hà Chéc 20 triệu")
+      const properMatch = text.match(/(?:^|(?:vay|cho|mượn|trả\s+nợ|thu\s+nợ|xin|từ|của)\s+)([A-ZÀ-Ỹ][a-zà-ỹ]+\s+[A-ZÀ-Ỹ][a-zà-ỹ]+(?:\s+[A-ZÀ-Ỹ][a-zà-ỹ]+)?)/u);
       if (properMatch) {
         const candidate = properMatch[1].trim();
         if (!/^(?:Hôm Qua|Hôm Kia|Hôm Nay|Tháng Trước|Tuần Trước|Năm Ngoái|Tiền Điện|Tiền Nước|Tiền Học|Tiền Ăn)$/i.test(candidate)) {
@@ -1758,12 +1764,13 @@ function jsonResponse_(obj) {
     function splitVoiceIntoClauses(rawText) {
       const text = String(rawText || '').trim();
       if (!text) return [];
-      // Bảo vệ cụm danh từ ghép như "sữa và bỉm", "ăn và uống", "Bơ và Pu" trước khi tách câu
+      // Bảo vệ cụm danh từ ghép như "sữa và bỉm", "ăn và uống", "Bơ và Pu" và cụm ngày tháng ở cuối câu
       const protectedText = text
-        .replace(/\b(sữa|bỉm|quần|sách|bút|ăn|cơm|rau|thịt|bơ|bố|mẹ|vợ)\s+(và|với)\s+(bỉm|tã|sữa|áo|vở|thước|uống|canh|cá|pu|chồng|con)\b/gi, '$1 __AND__ $3');
+        .replace(/\b(sữa|bỉm|quần|sách|bút|ăn|cơm|rau|thịt|bơ|bố|mẹ|vợ)\s+(và|với)\s+(bỉm|tã|sữa|áo|vở|thước|uống|canh|cá|pu|chồng|con)\b/gi, '$1 __AND__ $3')
+        .replace(/,\s*(?=(?:vào\s+)?(?:ngày|mùng|mồng|hôm\s+qua|hôm\s+kia|tuần\s+trước|tháng\s+trước|năm\s+ngoái)\b)/gi, ' ');
 
       const roughParts = protectedText
-        .split(/(?:[.;!\n]+|,\s*(?:và|rồi|sau\s+đó|còn|tiếp\s+theo)?\s*|\b(?:rồi|sau\s+đó|ngoài\s+ra|thêm\s+nữa|còn\s+lại)\b|\s+và\s+(?=(?:đóng|mua|trả|vay|cho|xin|nhận|thu|đổ|ăn|uống|đưa|gửi|tiền|hôm|ngày|mùng|tháng)))/i)
+        .split(/(?:[.;!\n]+|,\s*(?:và|rồi|sau\s+đó|còn|tiếp\s+theo)?\s*|\b(?:rồi|sau\s+đó|ngoài\s+ra|thêm\s+nữa|còn\s+lại)\b|\s+và\s+(?=(?:đóng|mua|trả|vay|cho|xin|nhận|thu|đổ|ăn|uống|đưa|gửi|tiền)))/i)
         .map(s => s.replace(/__AND__/g, 'và').trim())
         .filter(Boolean);
 
@@ -1774,7 +1781,8 @@ function jsonResponse_(obj) {
       const raw = String(clauseText || '').trim();
       if (!raw) return [];
       const lower = raw.toLowerCase();
-      const date = /(?:hôm|ngày|mùng|mồng|tháng|tuần|năm|\d{1,2}[\/\-]\d{1,2})/i.test(lower)
+      const hasExplicitDate = /(?:hôm|ngày|mùng|mồng|tháng|tuần|năm|\d{1,2}[\/\-]\d{1,2})/i.test(lower);
+      const date = hasExplicitDate
         ? parseRelativeDateFromText(raw)
         : (inheritedDate || formatDateYMD(new Date()));
 
@@ -1966,11 +1974,12 @@ function jsonResponse_(obj) {
               </div>
             </div>
 
-            ${item.type === 'debt' ? `
-              <div class="p-2 rounded-xl bg-violet-50 border border-violet-200 space-y-1.5">
+            ${(item.type === 'debt' || item.person) ? `
+              <div class="p-2 rounded-xl ${item.type === 'debt' ? 'bg-violet-50 border border-violet-200' : 'bg-orange-50/70 border border-orange-200'} space-y-1.5">
+                <label class="block text-[10px] font-bold ${item.type === 'debt' ? 'text-violet-700' : 'text-orange-700'} uppercase">${item.type === 'debt' ? 'Đối tác Vay / Nợ' : 'Người giao dịch / Người cho'}</label>
                 <input type="text" data-v-field="person" data-idx="${idx}" value="${escapeHtml(item.person)}" placeholder="Tên người giao dịch..."
-                  class="w-full h-8 px-2.5 rounded-lg border border-violet-200 bg-white text-xs font-bold text-slate-900" />
-                <div class="text-[10px] text-violet-800 font-medium">${escapeHtml(getDebtDirectionHint(item.subCat, item.debtDir))}</div>
+                  class="w-full h-8 px-2.5 rounded-lg border ${item.type === 'debt' ? 'border-violet-200' : 'border-orange-200'} bg-white text-xs font-bold text-slate-900" />
+                ${item.type === 'debt' ? `<div class="text-[10px] text-violet-800 font-medium">${escapeHtml(getDebtDirectionHint(item.subCat, item.debtDir))}</div>` : ''}
               </div>
             ` : ''}
           </div>
@@ -2576,10 +2585,13 @@ function jsonResponse_(obj) {
           check: () => typeof openVoiceConfirmModal === 'function' && Boolean($('voiceConfirmModal'))
         },
         {
-          name: '2. Phân tích ngày/tháng/năm cụ thể (15/10/2026)',
+          name: '4. Người khác cho tiền (Ngày mùng 5 tháng 10 Hà Chéc cho 20000 & ngày cuối câu)',
           check: () => {
-            const res = parseVoiceTranscript('Ngày 15/10/2026 đóng tiền điện 850k');
-            return res.length === 1 && res[0].date === '2026-10-15' && res[0].amount === 850000 && res[0].subCat === 'Điện';
+            const curYear = new Date().getFullYear();
+            const r1 = parseVoiceTranscript('Ngày mùng 5 tháng 10 Hà Chéc cho 20000');
+            const r2 = parseVoiceTranscript('Hà Chéc cho 20000 ngày mùng 5 tháng 10');
+            return r1.length === 1 && r1[0].type === 'income' && r1[0].amount === 20000 && r1[0].person === 'Hà Chéc' && r1[0].date === `${curYear}-10-05`
+              && r2.length === 1 && r2[0].date === `${curYear}-10-05` && r2[0].amount === 20000 && r2[0].person === 'Hà Chéc';
           }
         },
         {
