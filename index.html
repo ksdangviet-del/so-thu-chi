@@ -189,11 +189,14 @@
       <div class="flex items-center justify-between gap-2">
         <div class="min-w-0">
           <div class="flex items-center gap-2">
-            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white text-orange-600 text-lg shadow-sm">👛</span>
-            <div>
-              <h1 class="text-base font-extrabold tracking-tight leading-tight text-white">Sổ Thu Chi Thông Minh</h1>
+            <span class="inline-flex h-8 w-8 items-center justify-center rounded-xl bg-white text-orange-600 text-lg shadow-sm shrink-0">👛</span>
+            <div class="min-w-0">
+              <div class="flex items-center gap-1.5">
+                <h1 class="text-base font-extrabold tracking-tight leading-tight text-white truncate">Sổ Thu Chi Thông Minh</h1>
+                <span id="headerVersionBadge" class="px-1.5 py-0.5 rounded-md bg-white/25 border border-white/30 text-[9px] font-extrabold text-white tracking-wide shrink-0">v2.8</span>
+              </div>
               <div class="flex items-center gap-1.5 mt-0.5">
-                <span id="syncDot" class="h-2 w-2 rounded-full bg-white"></span>
+                <span id="syncDot" class="h-2 w-2 rounded-full bg-white shrink-0"></span>
                 <span id="syncStatusText" class="text-[11px] text-orange-50 font-medium truncate">Chế độ cục bộ</span>
               </div>
             </div>
@@ -558,11 +561,26 @@
   <div id="settingsModal" class="modal-backdrop hidden fixed inset-0 z-50 bg-slate-950/60 backdrop-blur-[2px] flex items-end sm:items-center justify-center p-0 sm:p-4">
     <div class="modal-panel bg-white w-full max-w-[430px] rounded-t-3xl sm:rounded-3xl max-h-[92dvh] overflow-y-auto shadow-2xl">
       <div class="sticky top-0 bg-white/95 backdrop-blur px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between z-10">
-        <h3 class="text-base font-extrabold text-slate-900">Đồng Bộ Sheets & Mã.gs</h3>
+        <div>
+          <h3 class="text-base font-extrabold text-slate-900">Đồng Bộ Sheets & Mã.gs</h3>
+          <p id="settingsVersionText" class="text-[11px] font-bold text-orange-600">Phiên bản: v2.8 • Nói AI Tiếng Việt Pro</p>
+        </div>
         <button type="button" data-close-modal="settingsModal" class="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold">✕</button>
       </div>
 
       <div class="p-5 space-y-4">
+        <!-- Thẻ nhận diện & ép cập nhật phiên bản mới nhất trên điện thoại -->
+        <div class="p-3 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-between gap-2.5">
+          <div class="min-w-0">
+            <div class="text-xs font-extrabold text-orange-950">🆕 Bản hiện tại: <span id="settingsBuildTag">v2.8 (20/11/2026)</span></div>
+            <div class="text-[10px] text-orange-800 leading-snug mt-0.5">Nếu điện thoại chưa hiện số phiên bản mới sau khi cập nhật GitHub, bấm nút bên cạnh để tải lại ngay.</div>
+          </div>
+          <button id="btnForceReloadApp" type="button"
+            class="px-3 py-2 rounded-xl bg-orange-600 hover:bg-orange-700 active:scale-95 transition text-white text-[11px] font-extrabold shrink-0 shadow-sm">
+            🔄 Tải bản mới
+          </button>
+        </div>
+
         <div class="p-3.5 rounded-2xl bg-indigo-50/70 border border-indigo-200 space-y-2.5">
           <div class="flex items-center justify-between gap-2">
             <label class="block text-xs font-extrabold text-indigo-950">🔗 Link Web App Google Apps Script (/exec)</label>
@@ -724,14 +742,17 @@
     'use strict';
 
     /* =========================================================================
-     * 1. CẤU HÌNH DANH MỤC GIA ĐÌNH CHI TIẾT (MỤC LỚN -> MỤC NHỎ)
+     * 1. CẤU HÌNH PHIÊN BẢN & DANH MỤC GIA ĐÌNH CHI TIẾT (MỤC LỚN -> MỤC NHỎ)
      * ========================================================================= */
+    const APP_VERSION = 'v2.8';
+    const APP_BUILD_LABEL = 'v2.8 • Nói AI Tiếng Việt Pro (20/11/2026)';
     const DEFAULT_GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbztGRWiy3V5Krz0wK-y9iQZMK0WSKM20PVAoRJULH5KdDgK38hoEvqHGtiRDRtQk-fK/exec';
 
     const STORAGE_KEYS = {
       TX: 'sothuchi_transactions_v2',
       DELETED: 'sothuchi_deleted_ids_v2',
-      GAS_URL: 'sothuchi_gas_exec_url_v2'
+      GAS_URL: 'sothuchi_gas_exec_url_v2',
+      LAST_SEEN_VERSION: 'sothuchi_last_seen_version'
     };
 
     const SUBCATS_HOUSEHOLD = [
@@ -2585,7 +2606,7 @@ function jsonResponse_(obj) {
           check: () => typeof openVoiceConfirmModal === 'function' && Boolean($('voiceConfirmModal'))
         },
         {
-          name: '4. Người khác cho tiền (Ngày mùng 5 tháng 10 Hà Chéc cho 20000 & ngày cuối câu)',
+          name: '2. Người khác cho tiền (Ngày mùng 5 tháng 10 Hà Chéc cho 20000 & ngày cuối câu)',
           check: () => {
             const curYear = new Date().getFullYear();
             const r1 = parseVoiceTranscript('Ngày mùng 5 tháng 10 Hà Chéc cho 20000');
@@ -2714,6 +2735,30 @@ function jsonResponse_(obj) {
         if ($('gasCodeViewer')) $('gasCodeViewer').value = GAS_SOURCE_CODE;
         if ($('gasUrlInput')) $('gasUrlInput').value = state.gasUrl;
         openModal('settingsModal');
+      });
+
+      // Ép tải lại phiên bản mới nhất trên điện thoại (xóa cache trình duyệt, giữ nguyên dữ liệu)
+      if ($('btnForceReloadApp')) $('btnForceReloadApp').addEventListener('click', async () => {
+        showToast('🔄 Đang làm mới bộ nhớ đệm để tải bản mới nhất...', 'info');
+        try {
+          if ('caches' in window) {
+            const keys = await caches.keys();
+            await Promise.all(keys.filter(k => k !== 'sothuchi-config-v1').map(k => caches.delete(k)));
+          }
+          if ('serviceWorker' in navigator) {
+            const regs = await navigator.serviceWorker.getRegistrations();
+            await Promise.all(regs.map(r => r.unregister()));
+          }
+        } catch (e) {}
+        try {
+          const u = new URL(window.location.href);
+          if (u.protocol.startsWith('http')) {
+            u.searchParams.set('v', `${APP_VERSION}_${Date.now()}`);
+            window.location.replace(u.toString());
+            return;
+          }
+        } catch (e) {}
+        window.location.reload();
       });
 
       // Chế độ thời gian & Chuyển kỳ
@@ -3067,11 +3112,25 @@ function jsonResponse_(obj) {
     async function initApp() {
       // Đảm bảo luôn đóng sạch tất cả hộp thoại ngay khi khởi chạy
       document.querySelectorAll('.modal-backdrop').forEach(m => m.classList.add('hidden'));
+      if ($('headerVersionBadge')) $('headerVersionBadge').textContent = APP_VERSION;
+      if ($('settingsVersionText')) $('settingsVersionText').textContent = `Phiên bản: ${APP_BUILD_LABEL}`;
+      if ($('settingsBuildTag')) $('settingsBuildTag').textContent = APP_BUILD_LABEL;
+
       loadLocalState();
       if ($('gasCodeViewer')) $('gasCodeViewer').value = GAS_SOURCE_CODE;
       await restoreGasUrlFromLayers();
       bindEvents();
       renderAll();
+
+      // Thông báo nhận diện tự động khi điện thoại vừa tải thành công bản cập nhật mới
+      try {
+        const prevVer = localStorage.getItem(STORAGE_KEYS.LAST_SEEN_VERSION);
+        if (prevVer !== APP_VERSION) {
+          localStorage.setItem(STORAGE_KEYS.LAST_SEEN_VERSION, APP_VERSION);
+          showToast(`✨ Đã cập nhật thành công bản mới ${APP_VERSION}!`, 'success');
+        }
+      } catch (e) {}
+
       syncWithSheets(true);
     }
 
