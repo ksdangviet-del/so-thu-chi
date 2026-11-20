@@ -5,15 +5,14 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="mobile-web-app-capable" content="yes" />
-  <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
   <meta name="apple-mobile-web-app-title" content="Sổ Thu Chi" />
-  <meta name="theme-color" content="#f97316" />
+  <meta name="theme-color" content="#ea580c" />
   <title>Sổ Thu Chi Thông Minh</title>
 
   <!-- Biểu tượng App: Nền cam - Chiếc ví trắng kèm đồng xu (Tự động xuất PNG chuẩn iOS & Android) -->
   <link id="apple-touch-icon-link" rel="apple-touch-icon" sizes="180x180" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 512 512'%3E%3Cdefs%3E%3ClinearGradient id='g' x1='0' y1='0' x2='1' y2='1'%3E%3Cstop offset='0%25' stop-color='%23ea580c'/%3E%3Cstop offset='55%25' stop-color='%23f97316'/%3E%3Cstop offset='100%25' stop-color='%23fb923c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Crect width='512' height='512' fill='url(%23g)'/%3E%3Crect x='108' y='132' width='296' height='248' rx='48' fill='%23ffffff'/%3E%3Crect x='326' y='214' width='94' height='84' rx='26' fill='%23ffedd5'/%3E%3Ccircle cx='360' cy='256' r='14' fill='%23ea580c'/%3E%3Ccircle cx='224' cy='256' r='74' fill='%23f59e0b' stroke='%23fef08a' stroke-width='8'/%3E%3Ctext x='224' y='284' font-family='Arial,sans-serif' font-size='88' font-weight='bold' fill='%23ffffff' text-anchor='middle'%3E%E2%82%AB%3C/text%3E%3C/svg%3E" />
   <link id="favicon-link" rel="icon" type="image/png" href="" />
-  <link id="dynamic-manifest" rel="manifest" href="" />
   <script>
     // Xuất ngay biểu tượng PNG 512x512 & 180x180 trên Canvas để iOS Safari nhận diện biểu tượng thay vì chữ S
     (function renderOrangeWalletPngIcon() {
@@ -193,7 +192,7 @@
             <div class="min-w-0">
               <div class="flex items-center gap-1.5">
                 <h1 class="text-base font-extrabold tracking-tight leading-tight text-white truncate">Sổ Thu Chi Thông Minh</h1>
-                <span id="headerVersionBadge" class="px-1.5 py-0.5 rounded-md bg-white/25 border border-white/30 text-[9px] font-extrabold text-white tracking-wide shrink-0">v2.8</span>
+                <span id="headerVersionBadge" class="px-1.5 py-0.5 rounded-md bg-white/25 border border-white/30 text-[9px] font-extrabold text-white tracking-wide shrink-0">v2.9</span>
               </div>
               <div class="flex items-center gap-1.5 mt-0.5">
                 <span id="syncDot" class="h-2 w-2 rounded-full bg-white shrink-0"></span>
@@ -563,7 +562,7 @@
       <div class="sticky top-0 bg-white/95 backdrop-blur px-5 pt-4 pb-3 border-b border-slate-100 flex items-center justify-between z-10">
         <div>
           <h3 class="text-base font-extrabold text-slate-900">Đồng Bộ Sheets & Mã.gs</h3>
-          <p id="settingsVersionText" class="text-[11px] font-bold text-orange-600">Phiên bản: v2.8 • Nói AI Tiếng Việt Pro</p>
+          <p id="settingsVersionText" class="text-[11px] font-bold text-orange-600">Phiên bản: v2.9 • Full Màn Hình & Nói AI Pro</p>
         </div>
         <button type="button" data-close-modal="settingsModal" class="h-8 w-8 rounded-full bg-slate-100 hover:bg-slate-200 flex items-center justify-center text-slate-600 font-bold">✕</button>
       </div>
@@ -572,7 +571,7 @@
         <!-- Thẻ nhận diện & ép cập nhật phiên bản mới nhất trên điện thoại -->
         <div class="p-3 rounded-2xl bg-orange-50 border border-orange-200 flex items-center justify-between gap-2.5">
           <div class="min-w-0">
-            <div class="text-xs font-extrabold text-orange-950">🆕 Bản hiện tại: <span id="settingsBuildTag">v2.8 (20/11/2026)</span></div>
+            <div class="text-xs font-extrabold text-orange-950">🆕 Bản hiện tại: <span id="settingsBuildTag">v2.9 (20/11/2026)</span></div>
             <div class="text-[10px] text-orange-800 leading-snug mt-0.5">Nếu điện thoại chưa hiện số phiên bản mới sau khi cập nhật GitHub, bấm nút bên cạnh để tải lại ngay.</div>
           </div>
           <button id="btnForceReloadApp" type="button"
@@ -744,8 +743,8 @@
     /* =========================================================================
      * 1. CẤU HÌNH PHIÊN BẢN & DANH MỤC GIA ĐÌNH CHI TIẾT (MỤC LỚN -> MỤC NHỎ)
      * ========================================================================= */
-    const APP_VERSION = 'v2.8';
-    const APP_BUILD_LABEL = 'v2.8 • Nói AI Tiếng Việt Pro (20/11/2026)';
+    const APP_VERSION = 'v2.9';
+    const APP_BUILD_LABEL = 'v2.9 • Full Màn Hình & Nói AI Pro (20/11/2026)';
     const DEFAULT_GAS_EXEC_URL = 'https://script.google.com/macros/s/AKfycbztGRWiy3V5Krz0wK-y9iQZMK0WSKM20PVAoRJULH5KdDgK38hoEvqHGtiRDRtQk-fK/exec';
 
     const STORAGE_KEYS = {
@@ -1389,20 +1388,12 @@ function jsonResponse_(obj) {
       try { window.name = 'STC_GAS=' + encodeURIComponent(clean); } catch (e) {}
       try { document.cookie = `stc_gas_url=${encodeURIComponent(clean)}; path=/; max-age=31536000; SameSite=Lax`; } catch (e) {}
       try {
-        const u = new URL(window.location.href);
-        if (u.protocol.startsWith('http')) {
-          u.searchParams.set('sheets', clean);
-          window.history.replaceState({}, '', u.toString());
-        }
-      } catch (e) {}
-      try {
         if ('caches' in window) {
           const cache = await caches.open('sothuchi-config-v1');
           await cache.put('/__gas_url__', new Response(clean));
         }
       } catch (e) {}
       await idbSetGasUrl(clean);
-      updateDynamicPwaManifest(clean);
       const inp = $('gasUrlInput');
       if (inp && inp.value !== clean) inp.value = clean;
     }
@@ -1440,26 +1431,8 @@ function jsonResponse_(obj) {
       return finalUrl;
     }
 
-    function updateDynamicPwaManifest(gasUrl) {
-      try {
-        const startUrl = new URL(window.location.href);
-        if (startUrl.protocol.startsWith('http') && gasUrl) {
-          startUrl.searchParams.set('sheets', gasUrl);
-        }
-        const iconHref = window.__APP_ICON_PNG_512__ || ($('apple-touch-icon-link') ? $('apple-touch-icon-link').href : '');
-        const manifest = {
-          name: 'Sổ Thu Chi Thông Minh',
-          short_name: 'Sổ Thu Chi',
-          start_url: startUrl.protocol.startsWith('http') ? startUrl.toString() : './',
-          display: 'standalone',
-          background_color: '#fffaf5',
-          theme_color: '#f97316',
-          icons: iconHref ? [{ src: iconHref, sizes: '512x512', type: 'image/png', purpose: 'any maskable' }] : []
-        };
-        const blob = new Blob([JSON.stringify(manifest)], { type: 'application/manifest+json' });
-        const link = $('dynamic-manifest');
-        if (link) link.href = URL.createObjectURL(blob);
-      } catch (e) {}
+    function updateDynamicPwaManifest() {
+      // Giữ nguyên chuẩn apple-mobile-web-app-capable trên iOS Safari (không dùng blob manifest gây mất chế độ full màn hình)
     }
 
     /* =========================================================================
